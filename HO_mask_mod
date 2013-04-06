@@ -1,0 +1,272 @@
+#!/bin/bash 
+
+Usage() {
+	function=`basename $0`
+	echo $function -i input -s HOindex [ -s HOindex -pthr pthr -ithr ithr -o output -side L -sub -omask -nobinary -cluster -bilateralise -voxthr voxthr -med]
+    echo
+    echo -i input stat file
+    echo -ithr threshold for input stat file \(default == 2.3\)
+    echo -s HOindex  structure \(see HO indexes below, multiple indexes can be given\)
+    echo -pthr probability threshold for HO p-map \(default == 0.3\)
+    echo -o outputbase \(default == input_HOindex\)
+    echo -sub use subcortical atlas
+    echo -cluster
+	echo -voxthr Set minimum number of voxels mask must have
+	echo -med check for mediality. Very spread masks will be split
+    echo 
+    echo Cortical
+    echo
+    cat $FSLDIR/data/atlases/HarvardOxford-Cortical.xml  | grep label |  sed 's/.*index="\([0-9]*\).*>\(.*\)<.*label>/\1 \2/g'
+    echo
+    echo Sub-Cortical
+    echo
+    cat $FSLDIR/data/atlases/HarvardOxford-Subcortical.xml  | grep label |  sed 's/.*index="\([0-9]*\).*>\(.*\)<.*label>/\1 \2/g'
+
+	exit 1
+}
+
+[ "$1" = "" ] && Usage
+
+chklateral () {
+    tmp=`tmpnam`.nii.gz
+	tmp2=`tmpnam`.nii.gz
+	fslmaths $1 -roi 45 1 0 -1 0 -1 0 -1 $tmp
+	if [[ `fslstats $tmp -V | awk '{print $1}'` != 0 ]]; then
+		if [[ $2 == 1 ]]; then
+			fslmaths $1 -roi 0 30 0 -1 0 -1 0 -1 $tmp; fslmaths $1 -roi 62 100 0 -1 0 -1 0 -1 $tmp2
+			if [[ `fslstats $tmp -V | awk '{print $1}'` != 0 && `fslstats $tmp2 -V | awk '{print $1}'` != 0 ]]; then
+				out=0
+			else
+				out=1
+			fi
+		else
+			out=1
+		fi
+	else
+		out=0
+	fi
+echo $out
+}
+
+clusterfun () {
+    tmp2=`tmpnam`.nii.gz
+    $FSLDIR/bin/cluster -i $1 --thresh=0.00001 --osize=$tmp2 > /dev/null 2>&1
+    $FSLDIR/bin/fslmaths $tmp2 -thr `fslstats $tmp2 -R | awk '{ print $2-.5}'` -bin $2
+
+    $FSLDIR/bin/fslmaths $1 -mas $2 $3
+}
+	
+pthr=0.3
+ithr=2.3
+sub=''
+
+firstchar=`echo $1 | head -c 1`
+
+while [[ $firstchar == '-' ]]
+do
+        if [[ $1 == -i ]]
+        then   
+
+            input=$2
+
+            shift 2
+
+        elif [[ $1 == -o ]]
+        then   
+
+            output=$2
+
+            shift 2
+
+        elif [[ $1 == -s ]]
+        then   
+
+        index="$index $2"
+
+        shift 2
+
+        elif [[ $1 == -pthr ]]
+        then   
+
+        pthr=$2
+
+        shift 2
+
+        elif [[ $1 == -ithr ]]
+        then   
+
+            ithr=$2
+
+            shift 2
+
+        elif [[ $1 == -sub ]]
+            then   
+
+            sub=1
+
+            shift 1
+
+        elif [[ $1 == -nobinary ]]
+            then   
+
+            nobinary=1
+
+            shift 1
+
+
+        elif [[ $1 == -omask ]]
+        then   
+
+        omask=1
+
+        shift 1
+
+        elif [[ $1 == -cluster ]]
+        then   
+
+        cluster=1
+
+        shift 1
+
+
+        elif [[ $1 == -bilateralise ]]
+        then   
+
+        bil=1
+
+        shift 1
+
+
+
+        elif [[ $1 == -side ]]
+        then   
+
+        side=_$2
+
+        shift 2
+
+	elif [[ $1 == -voxthr ]]
+	then
+
+	voxthr=$2
+
+	shift 2
+
+
+	elif [[ $1 == -med ]]
+	then 
+
+	med=1
+
+	shift 1
+        else
+            Usage
+
+        fi
+
+        firstchar=`echo $1 | head -c 1`
+done
+
+
+
+if [[ $sub == '' ]]; then
+    HO=$FSLDIR/data/atlases/HarvardOxford/HarvardOxford-cort-prob-2mm.nii.gz
+    xml=$FSLDIR/data/atlases/HarvardOxford-Cortical.xml
+else
+    HO=$FSLDIR/data/atlases/HarvardOxford/HarvardOxford-sub-prob-2mm.nii.gz
+    xml=$FSLDIR/data/atlases/HarvardOxford-Subcortical.xml
+fi
+
+
+
+pthr=`echo ${pthr}*100 | bc -l`
+mask=`tmpnam`.nii.gz
+tmp=`tmpnam`.nii.gz
+partmask=`tmpnam`.nii.gz
+
+# Show regions with super-threshold effects
+
+if [[ $index == '' ]];then
+    $FSLDIR/bin/fslmaths $HO -thr $pthr $tmp
+    $FSLDIR/bin/fslmaths $input -thr $ithr -mas $tmp $partmask
+
+    for aa in `fslstats -t $partmask.nii.gz -V | grep -n ^[1-9] | awk '{ print $1 }'`;
+        do  let index=${aa/:*/}-1
+            vol=${aa/*:/}
+            name=`cat $xml | grep index=\"$index\" | sed 's/.*index="\([0-9]*\).*>\(.*\)<.*label>/\2/g'`
+            echo $index $name  \($vol voxels\) 
+    done;
+
+    exit 
+fi
+
+for a in $index;do firstindex=$a;continue;done
+
+echo $firstindex 
+outname=`cat $xml | grep index=\"$firstindex\" | sed 's/.*index="\([0-9]*\).*>\(.*\)<.*label>/\2/g;s/ //g;s/,/_/g;s/(.*)//g'`
+
+
+# Produce mask
+
+for a in $index; do 
+
+    $FSLDIR/bin/fslroi $HO $tmp $a 1
+    $FSLDIR/bin/fslmaths $tmp -thr $pthr -bin $partmask
+	if [[ `chklateral $partmask $med` != 1 ]]; then
+			chkflg=1
+			[[ $side == _R ]] && $FSLDIR/bin/fslmaths $partmask -roi 0 45 0 -1 0 -1 0 -1 $partmask
+			[[ $side == _L ]] && $FSLDIR/bin/fslmaths $partmask -roi 46 91 0 -1 0 -1 0 -1 $partmask
+	fi
+
+	$FSLDIR/bin/fslmaths $input -thr $ithr -mas $partmask $tmp
+	[[ $cluster == 1 ]] && clusterfun $tmp $partmask $tmp
+	vol=`fslstats -t $tmp -V | grep -n ^[1-9] | awk '{print $1}'`; vol=${vol/*:/}
+	echo $index $vol
+	if [[ $vol -lt $voxthr ]]; then
+		echo "Number of Voxels too small. Mask will not be generated"
+		$FSLDIR/bin/fslmaths $partmask -mul 0 $partmask
+	fi
+
+     if [ -e $mask ];then
+	$FSLDIR/bin/fslmaths $mask -add $partmask $mask
+    else
+	$FSLDIR/bin/imcp $partmask $mask
+    fi
+done
+
+vol=`fslstats $mask.nii.gz -V | awk '{print $1}'`; vol=${vol/*:/}
+if [[ $vol == 0 ]]; then echo "Exiting"; exit; fi
+
+if [[ $chkflg == 1 ]]; then
+	[[ $output == '' ]] &&  output=`remove_ext $input`_${outname}$side
+else
+	[[ $output == '' ]] && output=`remove_ext $input`_${outname}
+fi	
+
+if [[ $nobinary == 1 ]]; then
+    $FSLDIR/bin/fslmaths $input -thr $ithr -mas $mask $output
+else
+    $FSLDIR/bin/fslmaths $input -thr $ithr -mas $mask -bin $output
+fi
+
+
+if [[ $bil != '' ]]; then
+    bilateralise -i $output -o $output
+fi
+
+[[ $cluster == 1 ]] && clusterfun $output $mask $output
+
+[[ $omask != '' ]] && imcp $mask ${output}_mask
+
+rm $mask $partmask $tmp
+
+
+bilaterise () { 
+    tmp=`tmpnam`.nii.gz
+
+    $FSLDIR/bin/fslswapdim $1 -x y z $tmp
+
+    $FSLDIR/bin/fslmaths $1 -add $tmp -bin $2
+    rm $tmp
+}
+
