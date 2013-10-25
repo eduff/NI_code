@@ -1,7 +1,7 @@
 #!/usr/local/EPD/bin/python
 """Module docstring.
 
-Set of functions for reading and writing FEAT design.fsf files into python
+Set of functions for reading, writing and modifying FEAT design.fsf files in python
 
 """
 
