@@ -1,12 +1,3 @@
-#!/usr/local/EPD/bin/python
-"""Module docstring.
-
-Set of functions for reading, writing and modifying FEAT design.fsf files in python
-
-"""
-
-# Allow python embedding
-# from IPython.Shell import IPShellEmbed
 
 from numpy import *
 import numpy as np
