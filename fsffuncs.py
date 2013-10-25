@@ -13,8 +13,6 @@ import numpy as np
 import sys,os
 import getopt
 import re,glob
-import matplotlib.pyplot as plt
-from matplotlib.mlab import demean
 
 def __init__(self, msg):
     self.msg = msg
