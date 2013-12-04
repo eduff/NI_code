@@ -11,6 +11,8 @@ Usage() {
     echo 
     echo -tar  featdir outputdir  - tar final directory into single file
     echo -untar ouputdir newbasedir - untars directory and updates directory locations 
+    echo
+    echo Requires setFEAT,cleanupFEAT,queryFEAT
 	exit 1
 }
 
