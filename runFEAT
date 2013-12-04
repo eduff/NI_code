@@ -1,0 +1,45 @@
+#!/bin/sh
+#
+#   Copyright (C) Eugene Duff 2004 University of Oxford
+#
+#   SHCOPYRIGHT
+
+Usage() {
+	function=`basename $0`
+	echo function to quickly run multiple feat analyses on cluster
+	echo $function [option] feat_files
+	echo -p x pause x minutes 
+	exit
+}
+
+[ "$1" = "" ] && Usage
+
+firstchar=`echo $1 | head -c 1`
+
+
+while [[ $firstchar == '-' ]]
+do
+        if [[ $1 == -p ]]
+        then   echo sleeping
+	       	sleep $2m
+        shift 2
+        elif [[ $1 == -c ]]
+        then    chdirflag=1
+        shift 1
+        fi
+
+        firstchar=`echo $1 | head -c 1`
+done
+
+currdir=`pwd`
+
+for a in $@;do 
+    if [[ $chdirflag == 1 ]]
+    then 
+        cd `dirname $a`
+        feat `basename $a`;
+        cd $currdir
+    else
+        feat $a;
+    fi
+done;

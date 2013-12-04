@@ -1,0 +1,52 @@
+#!/bin/sh
+#
+#   Copyright (C) Eugene Duff 2004 University of Oxford
+#
+#   SHCOPYRIGHT
+
+Usage() {
+	function=`basename $0`
+	echo Usage: $function [-eo] FEATdirs
+	echo 
+	echo Checks status of FEAT analyses
+	echo 
+	echo Option:
+	echo -e list only dirs with errors
+	echo -g list on dirs without errors
+	
+	exit 1 
+}
+
+[ "$1" = "" ] && Usage
+
+firstchar=`echo $1 | head -c 1`
+
+while [[ $firstchar == '-' ]]
+do
+        if [[ $1 == '-eo' ]]
+        then eoflag=1   
+        elif [[ $1 == '-go' ]]
+        then gflag=1   
+        fi
+
+        shift
+	firstchar=`echo $1 | head -c 1`
+done
+
+for aa in $@;
+	do a=`grep  -o 'STILL RUNNING' $aa/report.html`
+	b=`grep  -o 'Errors occured' $aa/report.html`
+	bb=`grep  -l '[Ee][Rr][Rr][Oo][Rr]' $aa/report_log.html`
+
+	if [[ $b != '' ]] && [[ $eoflag != '1' ]] && [[ $gflag != '1' ]] 
+	then echo $aa $a $b
+	elif [[ $b != '' ]] && [[ $gflag != '1' ]]
+	then echo $aa 
+	elif [[ $bb != '' ]]  && [[ $eoflag != '1' ]] && [[ $gflag != '1' ]]
+	then 	echo $aa $a Errors in log file
+	elif [[ $bb != '' ]] && [[ $gflag != '1' ]]
+	then 	echo $aa $a 
+	elif [[ $bb == '' ]] && [[ $b == '' ]] && [[ $eoflag != '1' ]] 
+	then	echo $aa $a	
+	fi
+done;

@@ -59,6 +59,9 @@ clusterfun () {
 pthr=0.3
 ithr=2.3
 sub=''
+echo
+echo $0 ${@} 
+
 
 firstchar=`echo $1 | head -c 1`
 
