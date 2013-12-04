@@ -1,6 +1,5 @@
 
 from numpy import *
-import numpy as np
 import sys,os
 import getopt
 import re,glob
