@@ -1,6 +1,6 @@
 #!/usr/local/EPD/bin/python
 """Module docstring.
-This serves as a long usage message. asdas
+This serves as a long usage message.
 """
 
 # Allow python embedding
@@ -45,7 +45,7 @@ def main():
  
     classify()
 
-def classify(data='All_10.dr',plot=[],fig=[],sort=1,L1=''):
+def classify(data='All_10.dr',plot=[],fig=[],tpts=230,sort=1,L1=''):
 
     #reading and parsing labels
     with open("/home/fs0/madugula/scratch/FC/covarscript/fgcutshncl2.txt") as f:
@@ -61,9 +61,10 @@ def classify(data='All_10.dr',plot=[],fig=[],sort=1,L1=''):
         xlabels=[]
 
         tasks=['r','t','v','vt','vtbw']
-        netmats=['1','0','0a','2','3','4','5','6','7','8','9','10','11','12']
+        #netmats=['1','0','0a','2','3','4','5','6','7','8','9','10','11','12']
+        netmats=['1','0','0a','2','5','6','7','8','9','10','11','12']
         #netmats=['1','0','0a','2','5']
-        netmatnames=['Corr','Cov','Amp','ICOV','ICOV0.1','ICOV1','ICOV10','ICOV20''ICOV40','ICOV60','ICOV80','ICOV100','ICOV150','ICOV200']
+        netmatnames=['Corr','Cov','Amp','ICOV','ICOV10','ICOV20''ICOV40','ICOV60','ICOV80','ICOV100','ICOV150','ICOV200']
         #netmatnames=['Corr','Cov','Amp','ICOV10']
 
 
@@ -77,7 +78,7 @@ def classify(data='All_10.dr',plot=[],fig=[],sort=1,L1=''):
             for i in range(len(tasks)):
 
                 # tmp_task=scipy.io.loadmat(tasks[i]+'_'+data+'/out_tpts_all_150.mat')
-                tmp_task=scipy.io.loadmat(tasks[i]+'_'+data+'/out.mat')
+                tmp_task=scipy.io.loadmat(tasks[i]+'_'+data+'/out_'+str(tpts)+'.mat')
                 tmp2=tmp_task['netmat'+mm]
 
                 mats[nmm].append((tmp2))
